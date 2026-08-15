@@ -245,14 +245,11 @@ function calculateRessens(pathlengthsContent: string, ommatidialAngle: number) {
       const diff = xz - yy;
       const hwp = xz - halfwayPoint;
       let frac = 0.0;
-      if (diff > 0 && hwp >= 0) {
-        frac = Math.min(1.0, Math.max(0.0, hwp / (diff + 0.1)));
+      if (diff > 0) {
+        frac = hwp / (diff + 0.1);
       }
       const oab = frac * ommatidialAngle;
-      let res = oab + opticAxis;
-      if (res < 0) {
-        res = 0;
-      }
+      const res = oab + opticAxis;
 
       if (cc === 0 && dd > 0) {
         matrixSens.push([...currentSensRow]);
