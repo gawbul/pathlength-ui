@@ -214,11 +214,7 @@ func (m *Model) runModelInMemory() (pathlengthsCsv string, debugCsv string) {
 						} else {
 							x = rhabdomLength / math.Abs(math.Cos(boa*degToRadConv))
 						}
-						if x > m.OldRhabdomLength {
-							v = x
-						} else {
-							v = m.OldRhabdomLength
-						}
+						v = m.OldRhabdomLength / math.Abs(math.Cos(boa*degToRadConv))
 
 						if m.TapetalPigment == 0 || m.ShieldingPigment > 0 {
 							val = x * facetNum
@@ -235,12 +231,7 @@ func (m *Model) runModelInMemory() (pathlengthsCsv string, debugCsv string) {
 						if z > x {
 							z = x
 						}
-						var v float64
-						if (x + z) > m.OldRhabdomLength {
-							v = x + z
-						} else {
-							v = m.OldRhabdomLength
-						}
+						v := m.OldRhabdomLength / math.Abs(math.Cos(boa*degToRadConv))
 						if m.TapetalPigment == 0 {
 							val = (x + z) * facetNum
 						} else {
@@ -327,7 +318,7 @@ func (m *Model) calculateRessensInMemory(pathlengthsContent string) (resCsv stri
 			hwp := xz - halfwayPoint
 			var frac float64
 			if diff > 0 {
-				frac = hwp / (diff + 0.1) // allow unbounded forward extrapolation
+				frac = hwp / diff
 			} else {
 				frac = 0.0 // prevent backward extrapolation
 			}
