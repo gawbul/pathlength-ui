@@ -127,7 +127,7 @@ export function runSimulationTS(p: EyeParameters, debugMode = false): Simulation
             } else {
               x = rhabdomLength / Math.abs(Math.cos(boa * DEG_TO_RAD));
             }
-            const v = x > oldRhabdomLength ? x : oldRhabdomLength;
+            const v = oldRhabdomLength / Math.abs(Math.cos(boa * DEG_TO_RAD));
             let val = 0.0;
             if (tapetalPigment === 0 || shieldingPigment > 0) {
               val = x * facetNum;
@@ -144,7 +144,7 @@ export function runSimulationTS(p: EyeParameters, debugMode = false): Simulation
             const x = rhabdomRadius / Math.abs(Math.sin(boa * DEG_TO_RAD));
             let z = (rhabdomLength - y) / Math.abs(Math.cos(boa * DEG_TO_RAD));
             if (z > x) z = x;
-            const v = x + z > oldRhabdomLength ? x + z : oldRhabdomLength;
+            const v = oldRhabdomLength / Math.abs(Math.cos(boa * DEG_TO_RAD));
             let val = 0.0;
             if (tapetalPigment === 0) {
               val = (x + z) * facetNum;
@@ -246,7 +246,7 @@ function calculateRessens(pathlengthsContent: string, ommatidialAngle: number) {
       const hwp = xz - halfwayPoint;
       let frac = 0.0;
       if (diff > 0) {
-        frac = hwp / (diff + 0.1);
+        frac = hwp / diff;
       }
       const oab = frac * ommatidialAngle;
       const res = oab + opticAxis;
