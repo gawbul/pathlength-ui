@@ -205,6 +205,7 @@ export function runSimulationTS(p: EyeParameters, debugMode = false): Simulation
 
 function calculateRessens(pathlengthsContent: string, ommatidialAngle: number) {
   let rhabdoms = new Array<number>(21).fill(0);
+  let intensities = new Array<number>(21).fill(0);
   const matrixSens: number[][] = [];
   const matrixRes: number[][] = [];
   let currentSensRow: number[] = [];
@@ -227,27 +228,46 @@ function calculateRessens(pathlengthsContent: string, ommatidialAngle: number) {
       for (const r of rhabdoms) {
         sens += r;
       }
-      const halfwayPoint = rhabdoms[0] / 2.0;
+      
+      let maxIntensity = intensities[0];
+      for (const v of intensities) {
+        if (v > maxIntensity) {
+          maxIntensity = v;
+        }
+      }
+      const halfwayPoint = maxIntensity / 2.0;
+      
       let opticAxis = 0.0;
-      let xz = rhabdoms[0];
-      let yy = rhabdoms[1] || 0;
+      let xz = intensities[0];
+      let yy = intensities[1] || 0;
 
-      for (let i = 1; i < 12; i++) {
-        if (halfwayPoint < rhabdoms[i]) {
-          xz = rhabdoms[i];
-          if (i + 1 < rhabdoms.length) {
-            yy = rhabdoms[i + 1];
-          }
+      let foundCrossing = false;
+      for (let i = 0; i < intensities.length - 1; i++) {
+        if (intensities[i] >= halfwayPoint && intensities[i + 1] < halfwayPoint) {
+          xz = intensities[i];
+          yy = intensities[i + 1];
           opticAxis = ommatidialAngle * i;
+          foundCrossing = true;
+          break;
         }
       }
 
-      const diff = xz - yy;
-      const hwp = xz - halfwayPoint;
       let frac = 0.0;
-      if (diff > 0) {
-        frac = hwp / diff;
+      if (!foundCrossing) {
+        frac = 0.0;
+        opticAxis = ommatidialAngle * (intensities.length - 1);
+      } else {
+        const diff = xz - yy;
+        const hwp = xz - halfwayPoint;
+        if (diff > 0) {
+          frac = hwp / diff;
+          if (frac < 0.0) frac = 0.0;
+          if (frac > 1.0) frac = 1.0;
+        } else {
+          frac = 0.0;
+        }
       }
+      
       const oab = frac * ommatidialAngle;
       const res = oab + opticAxis;
 
@@ -271,6 +291,7 @@ function calculateRessens(pathlengthsContent: string, ommatidialAngle: number) {
       }
 
       rhabdoms = new Array<number>(21).fill(0);
+      intensities = new Array<number>(21).fill(0);
       facet = 0;
       headerCount = 0;
     } else if (headerCount < 2) {
@@ -299,9 +320,10 @@ function calculateRessens(pathlengthsContent: string, ommatidialAngle: number) {
           bx = 0;
         }
         tot += bx / 100.0;
-        bx *= torus;
+        
         if (rhabdom < rhabdoms.length) {
-          rhabdoms[rhabdom] += bx;
+          intensities[rhabdom] += bx;
+          rhabdoms[rhabdom] += bx * torus;
         }
         rhabdom++;
       }
