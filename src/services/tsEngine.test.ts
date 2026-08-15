@@ -26,11 +26,11 @@ describe('tsEngine', () => {
     
     // Verify resolution matrix size
     expect(result.matrixRes.length).toBe(11);
-    result.matrixRes.forEach((row, rowIdx) => {
+    result.matrixRes.forEach((row) => {
       expect(row.length).toBe(11);
       
       // Verify no negative resolutions exist in the output
-      row.forEach((resVal, colIdx) => {
+      row.forEach((resVal) => {
         expect(resVal).toBeGreaterThanOrEqual(0);
       });
     });
