@@ -120,7 +120,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
             onClick={() => setActiveTab('heatmap-res')}
           >
             <SunMedium size={15} />
-            <span>Resolution Matrix (11×11)</span>
+            <span>Resolution (Acceptance Angle) Matrix (11×11)</span>
           </button>
 
           <button
@@ -224,7 +224,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
               <div className="overview-matrix-preview">
                 <div className="preview-header">
                   <SunMedium size={16} />
-                  <h4>Acceptance Angle Matrix (FWHM, degrees)</h4>
+                  <h4>Resolution (Acceptance Angle) Matrix (FWHM, degrees)</h4>
                 </div>
                 <HeatmapViewer
                   matrix={currentResult.matrixRes}
@@ -269,7 +269,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
         {activeTab === 'heatmap-res' && (
           <div className="single-view-pane">
             <div className="pane-header">
-              <h3>Acceptance Angle Matrix &mdash; FWHM of the point spread function (degrees)</h3>
+              <h3>Resolution (Acceptance Angle) Matrix &mdash; FWHM of the point spread function (degrees)</h3>
               <p>Larger angles mean a wider acceptance angle and so lower spatial acuity. A cell reading <code>n/a</code> is a pigment state with no acceptance angle: it either absorbs no light, or its profile is annular, dipping below half its maximum on the optic axis so the light forms a ring rather than a central spot.</p>
             </div>
             <HeatmapViewer
