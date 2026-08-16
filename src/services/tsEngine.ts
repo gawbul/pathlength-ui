@@ -142,8 +142,7 @@ export function runSimulationTS(p: EyeParameters, debugMode = false): Simulation
             boa < criticalAngle
           ) {
             const x = rhabdomRadius / Math.abs(Math.sin(boa * DEG_TO_RAD));
-            let z = (rhabdomLength - y) / Math.abs(Math.cos(boa * DEG_TO_RAD));
-            if (z > x) z = x;
+            const z = (rhabdomLength - y) / Math.abs(Math.cos(boa * DEG_TO_RAD));
             const v = oldRhabdomLength / Math.abs(Math.cos(boa * DEG_TO_RAD));
             let val = 0.0;
             if (tapetalPigment === 0) {
