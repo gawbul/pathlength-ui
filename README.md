@@ -25,6 +25,14 @@ The application runs the pure mathematical simulation engine in the browser usin
 - **Batch Export**:
   - **1-Click Download All (ZIP)**: Generates a complete archive containing `[species]_summary_res.csv`, `[species]_summary_sen.csv`, `[species]_pathlengths.csv`, optional `[species]_debug.csv`, `input_parameters.csv`, and a structured `simulation_report.json`.
   - Individual CSV download and clipboard copy (CSV & Excel TSV).
+
+    > **Not comparable with output from earlier releases.** `summary_res` was the FWHM
+    > in centidegrees written as `int(200 × half-width)` and is now the FWHM in
+    > degrees; `summary_sen` was a truncated integer percentage and is now a float;
+    > `pathlengths` was blocks of positional lines closed by `999` with facet
+    > transmission folded into every value, and is now a rectangular CSV of raw
+    > geometry. Dividing an old resolution by 100 does not recover the new value,
+    > because the underlying calculation changed as well.
 - **Academic Citation & Theory Guide**:
   - In-app modal with 1-click BibTeX and APA citation copy.
   - Interactive theory guide explaining superposition optics, pigment migration dynamics, and waveguiding cases.
