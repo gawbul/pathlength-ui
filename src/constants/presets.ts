@@ -105,9 +105,9 @@ export const PRESETS: ParameterPreset[] = [
   },
   {
     id: 'astacodes',
-    name: 'Astacodes',
-    description: 'Small reflecting superposition eye: 7 facets across the eyeshine patch and a 4.12 deg ommatidial angle, the coarsest angular sampling of the bundled examples.',
-    category: 'Astacidea',
+    name: 'Astacodes sp. (Cretaceous Spiny Lobster)',
+    description: 'Cretaceous palinurid known only from fossils, modelled here from fossil eye dimensions. Small reflecting superposition eye: 7 facets across the eyeshine patch and a 4.12 deg ommatidial angle, the coarsest angular sampling of the bundled examples.',
+    category: 'Achelata',
     parameters: [
       {
         // These are the measurements shipped in example_data. Earlier versions of
