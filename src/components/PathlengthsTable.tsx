@@ -21,45 +21,35 @@ export const PathlengthsTable: React.FC<PathlengthsTableProps> = ({
   const [selectedBlock, setSelectedBlock] = useState<number>(0);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Parse pathlengths CSV into 121 blocks
+  // The engine emits a tidy CSV with one row per rhabdom, each carrying its own
+  // block and facet keys. Pivot it back into one row per facet for display.
   const blocks = useMemo<PathlengthBlock[]>(() => {
-    const lines = pathlengthsCsv.split('\n');
     const parsedBlocks: PathlengthBlock[] = [];
-    let currentP = '';
-    let currentT = '';
-    let currentRows: string[][] = [];
-    let state = 0; // 0 = expecting P, 1 = expecting T, 2 = facet rows
 
-    for (const rawLine of lines) {
+    for (const rawLine of pathlengthsCsv.split('\n')) {
       const line = rawLine.trim();
-      if (!line) continue;
+      // Skip blank lines and the header row.
+      if (!line || line.startsWith('block,')) continue;
 
-      if (line === '999') {
-        parsedBlocks.push({
-          blockIndex: parsedBlocks.length,
-          shielding: currentP,
-          tapetal: currentT,
-          rows: currentRows,
-        });
-        currentP = '';
-        currentT = '';
-        currentRows = [];
-        state = 0;
+      const [blockField, shielding, tapetal, facetField, rhabdomField, pathlength] =
+        line.split(',');
+      const blockIndex = Number(blockField);
+      const facet = Number(facetField);
+      const rhabdom = Number(rhabdomField);
+      if (!Number.isInteger(blockIndex) || !Number.isInteger(facet) || !Number.isInteger(rhabdom)) {
         continue;
       }
 
-      if (state === 0) {
-        currentP = line;
-        state = 1;
-      } else if (state === 1) {
-        currentT = line;
-        state = 2;
-      } else {
-        currentRows.push(line.split(','));
+      let block = parsedBlocks[blockIndex];
+      if (!block) {
+        block = { blockIndex, shielding, tapetal, rows: [] };
+        parsedBlocks[blockIndex] = block;
       }
+      if (!block.rows[facet]) block.rows[facet] = [];
+      block.rows[facet][rhabdom] = pathlength;
     }
 
-    return parsedBlocks;
+    return parsedBlocks.filter(Boolean);
   }, [pathlengthsCsv]);
 
   const activeBlock = blocks[selectedBlock] || blocks[0];

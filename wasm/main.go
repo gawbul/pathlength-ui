@@ -10,7 +10,10 @@ import (
 type WasmResponse struct {
 	Success bool                `json:"success"`
 	Results []*SimulationResult `json:"results,omitempty"`
-	Error   string              `json:"error,omitempty"`
+	// Skipped carries one message per parameter set that failed validation, so the
+	// caller can report it rather than silently returning fewer results than asked for.
+	Skipped []string `json:"skipped,omitempty"`
+	Error   string   `json:"error,omitempty"`
 }
 
 func runPathlengthSimulationWrapper(this js.Value, args []js.Value) any {
@@ -24,7 +27,7 @@ func runPathlengthSimulationWrapper(this js.Value, args []js.Value) any {
 		debugMode = args[1].Bool()
 	}
 
-	results, err := RunAllSimulations(csvContent, debugMode)
+	results, skipped, err := RunAllSimulations(csvContent, debugMode)
 	if err != nil {
 		return errorResponse(err.Error())
 	}
@@ -32,6 +35,7 @@ func runPathlengthSimulationWrapper(this js.Value, args []js.Value) any {
 	resp := WasmResponse{
 		Success: true,
 		Results: results,
+		Skipped: skipped,
 	}
 
 	jsonBytes, err := json.Marshal(resp)

@@ -33,8 +33,17 @@ export interface SimulationResult {
   summarySenCsv: string;
   pathlengthsCsv: string;
   debugCsv?: string;
-  matrixRes: number[][];
-  matrixSens: number[][];
+  /**
+   * FWHM of the point spread function in degrees, with rows varying the shielding
+   * (proximal screening) pigment and columns the tapetal (reflecting) pigment. A
+   * null cell means the profile never falls to half its maximum, so the acceptance
+   * angle is undefined rather than merely large.
+   */
+  matrixRes: (number | null)[][];
+  /** Percentage of incident light absorbed (0-100), on the same 11x11 axes. */
+  matrixSens: (number | null)[][];
+  /** Non-fatal notes from the engine, e.g. annular profiles or discarded rays. */
+  warnings?: string[];
   executionTimeMs?: number;
 }
 

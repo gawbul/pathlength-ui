@@ -224,7 +224,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
               <div className="overview-matrix-preview">
                 <div className="preview-header">
                   <SunMedium size={16} />
-                  <h4>Resolution Summary Matrix (200 &times; &theta;<sub>optic</sub>)</h4>
+                  <h4>Acceptance Angle Matrix (FWHM, degrees)</h4>
                 </div>
                 <HeatmapViewer
                   matrix={currentResult.matrixRes}
@@ -242,7 +242,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
               <div className="overview-matrix-preview">
                 <div className="preview-header">
                   <Flame size={16} />
-                  <h4>Sensitivity Summary Matrix (Light Catch / Area)</h4>
+                  <h4>Sensitivity Matrix (light absorbed, %)</h4>
                 </div>
                 <HeatmapViewer
                   matrix={currentResult.matrixSens}
@@ -269,8 +269,8 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
         {activeTab === 'heatmap-res' && (
           <div className="single-view-pane">
             <div className="pane-header">
-              <h3>Calculated Resolution Matrix (200 &times; Optical Acceptance Angle)</h3>
-              <p>Higher numerical values denote wider optical acceptance angles (lower spatial acuity).</p>
+              <h3>Acceptance Angle Matrix &mdash; FWHM of the point spread function (degrees)</h3>
+              <p>Larger angles mean a wider acceptance angle and so lower spatial acuity. A cell reading <code>n/a</code> is a pigment state with no acceptance angle: it either absorbs no light, or its profile is annular, dipping below half its maximum on the optic axis so the light forms a ring rather than a central spot.</p>
             </div>
             <HeatmapViewer
               matrix={currentResult.matrixRes}
@@ -289,8 +289,8 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
         {activeTab === 'heatmap-sen' && (
           <div className="single-view-pane">
             <div className="pane-header">
-              <h3>Calculated Sensitivity Matrix (&sum; Integrated Absorbance / Area)</h3>
-              <p>Values represent quantum light capture flux normalized against the incident aperture area.</p>
+              <h3>Sensitivity Matrix &mdash; incident light absorbed (%)</h3>
+              <p>The percentage of incident light absorbed by the rhabdom array, area-weighted across the eyeshine patch.</p>
             </div>
             <HeatmapViewer
               matrix={currentResult.matrixSens}

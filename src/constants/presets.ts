@@ -105,20 +105,28 @@ export const PRESETS: ParameterPreset[] = [
   },
   {
     id: 'astacodes',
-    name: 'Astacodes (Freshwater Crayfish Model)',
-    description: 'Standard benchmark compound eye model for comparative optical resolution and sensitivity analysis.',
+    name: 'Astacodes',
+    description: 'Small reflecting superposition eye: 7 facets across the eyeshine patch and a 4.12 deg ommatidial angle, the coarsest angular sampling of the bundled examples.',
     category: 'Astacidea',
     parameters: [
       {
+        // These are the measurements shipped in example_data. Earlier versions of
+        // this preset carried scaled-down placeholder values (100/10/1000/20/500)
+        // that matched no measured eye.
         speciesName: 'astacodes',
-        rhabdomLength: 100,
-        rhabdomWidth: 10,
-        eyeDiameter: 1000,
-        facetWidth: 20,
-        apertureDiameter: 500,
+        rhabdomLength: 84,
+        rhabdomWidth: 16,
+        eyeDiameter: 890,
+        facetWidth: 32,
+        apertureDiameter: 445,
         cytoplasmRefractiveIndex: 1.34,
         rhabdomRefractiveIndex: 1.37,
-        blurCircleExtent: 1,
+        // The published row carried a blur circle of 18 rhabdoms, copied from the
+        // Nephrops template line sitting directly above it in the original source.
+        // This eye has only 7 facets across the eyeshine patch, so 18 is unreachable.
+        // 4 reproduces the Nephrops blur circle diameter it was copied from
+        // (24.72 deg against 24.98 deg).
+        blurCircleExtent: 4,
         proximalRhabdomAngle: 0,
       },
     ],

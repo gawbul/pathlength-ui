@@ -17,7 +17,7 @@ The application runs the pure mathematical simulation engine in the browser usin
   - *Acanthephyra purpurea* (Deep-sea Oplophorid Shrimp) — Blur circle extent variations (1, 3, 6).
   - *Astacodes* — Standard benchmark model.
 - **Interactive Visualizations & Data Analysis**:
-  - **11×11 Dynamic Matrix Heatmaps**: Perceptually uniform scientific colormaps (*Viridis*, *Turbo*, *Plasma*, *Inferno*, *Oceanic*) for both Resolution ($200 \times \theta_{optic}$) and Sensitivity ($\sum A / \text{Area}$).
+  - **11×11 Dynamic Matrix Heatmaps**: Perceptually uniform scientific colormaps (*Viridis*, *Turbo*, *Plasma*, *Inferno*, *Oceanic*) for the acceptance angle (FWHM of the point spread function, in degrees) and the sensitivity (percentage of incident light absorbed, area-weighted over the eyeshine patch). Rows vary the shielding (proximal screening) pigment, columns the tapetal (reflecting) pigment. A cell shown as `n/a` is a pigment state with no acceptance angle: it either absorbs no light, or its profile is annular, dipping below half its maximum on the optic axis so that the light forms a ring rather than a central spot.
   - **Dynamic Cell Inspector**: Hover over any of the 121 pigment states to inspect exact physical lengths ($\mu m$), steps ($0..10$), and values.
   - **Adaptation Trade-off Curve (Scatter Plot)**: Visualizes the optical Pareto frontier between dark-adapted sensitivity and light-adapted spatial acuity.
   - **Derived Optical Constants Card**: Calculates eye radius ($R_{eye}$), aperture radius ($R_{ap}$), ommatidial acceptance angle ($\Delta\phi$), number of facets ($N_{facets}$), and Snell's Law critical TIR angle ($\theta_c$).
@@ -25,6 +25,14 @@ The application runs the pure mathematical simulation engine in the browser usin
 - **Batch Export**:
   - **1-Click Download All (ZIP)**: Generates a complete archive containing `[species]_summary_res.csv`, `[species]_summary_sen.csv`, `[species]_pathlengths.csv`, optional `[species]_debug.csv`, `input_parameters.csv`, and a structured `simulation_report.json`.
   - Individual CSV download and clipboard copy (CSV & Excel TSV).
+
+    > **Not comparable with output from earlier releases.** `summary_res` was the FWHM
+    > in centidegrees written as `int(200 × half-width)` and is now the FWHM in
+    > degrees; `summary_sen` was a truncated integer percentage and is now a float;
+    > `pathlengths` was blocks of positional lines closed by `999` with facet
+    > transmission folded into every value, and is now a rectangular CSV of raw
+    > geometry. Dividing an old resolution by 100 does not recover the new value,
+    > because the underlying calculation changed as well.
 - **Academic Citation & Theory Guide**:
   - In-app modal with 1-click BibTeX and APA citation copy.
   - Interactive theory guide explaining superposition optics, pigment migration dynamics, and waveguiding cases.
@@ -52,7 +60,7 @@ genus, rhabdom_length, rhabdom_width, eye_diameter, facet_width, aperture_diamet
 | `apertureDiameter` | $\mu m$ | Eyeshine entrance pupil diameter | `3200` |
 | `cytoplasmRefractiveIndex` | index | Surrounding cytoplasm medium RI ($n_{cyto}$) | `1.34` |
 | `rhabdomRefractiveIndex` | index | Photoreceptor rhabdom RI ($n_{rhab}$) | `1.37` |
-| `blurCircleExtent` | integer | Off-axis blur circle factor ($\ge 1$) | `18` |
+| `blurCircleExtent` | rhabdoms | Width of the blur circle. 1 is a point focus; the outermost facet is displaced by (extent $-$ 1) rhabdoms. Must not exceed the facet count across the eyeshine patch | `18` |
 | `proximalRhabdomAngle` | degrees | Proximal entrance taper angle for pointy rhabdoms | `0` or `12.5` |
 
 ---

@@ -105,9 +105,17 @@ export async function runSimulations(
         const totalDuration = performance.now() - startTime;
         const durationPerItem = Math.round((totalDuration / parsed.results.length) * 100) / 100;
 
-        return parsed.results.map((res: any, idx: number) => ({
+        if (Array.isArray(parsed.skipped) && parsed.skipped.length > 0) {
+          // The engine rejects parameter sets that cannot describe a real eye, so the
+          // results array may be shorter than the input list.
+          console.warn('Some parameter sets were skipped:', parsed.skipped.join('; '));
+        }
+
+        return parsed.results.map((res: any) => ({
           speciesName: res.speciesName,
-          params: paramsList[idx] || res.params,
+          // Match on species name rather than position: a rejected row would otherwise
+          // shift every subsequent result onto the wrong input parameters.
+          params: paramsList.find((p) => p.speciesName === res.speciesName) ?? res.params,
           calculatedStats: res.calculatedStats,
           summaryResCsv: res.summaryResCsv,
           summarySenCsv: res.summarySenCsv,
@@ -115,6 +123,7 @@ export async function runSimulations(
           debugCsv: res.debugCsv,
           matrixRes: res.matrixRes,
           matrixSens: res.matrixSens,
+          warnings: res.warnings,
           executionTimeMs: durationPerItem,
         }));
       } else if (parsed.error) {
@@ -125,8 +134,17 @@ export async function runSimulations(
     }
   }
 
-  // Fallback to pure TS engine
-  return paramsList.map((p) => runSimulationTS(p, debugMode));
+  // Fallback to pure TS engine. Parameter sets that cannot describe a real eye are
+  // rejected by the engine, so skip them rather than failing the whole batch.
+  const results: SimulationResult[] = [];
+  for (const p of paramsList) {
+    try {
+      results.push(runSimulationTS(p, debugMode));
+    } catch (err) {
+      console.warn(`Skipping ${p.speciesName}:`, err instanceof Error ? err.message : err);
+    }
+  }
+  return results;
 }
 
 export function isWasmEngineActive(): boolean {
