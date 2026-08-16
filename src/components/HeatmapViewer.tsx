@@ -3,11 +3,17 @@ import type { ColorPalette, EyeParameters } from '../types/simulation';
 import { Palette, Copy, Download, Check, Info } from 'lucide-react';
 
 interface HeatmapViewerProps {
-  matrix: number[][];
+  matrix: (number | null)[][];
   matrixType: 'resolution' | 'sensitivity';
   params: EyeParameters;
   onDownloadCsv: () => void;
 }
+
+/**
+ * Resolution is an acceptance angle in degrees and sensitivity a percentage, so both
+ * need decimals. A null cell is an undefined measurement, not a zero.
+ */
+const formatCell = (val: number | null): string => (val === null ? 'n/a' : val.toFixed(2));
 
 export const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
   matrix,
@@ -19,15 +25,16 @@ export const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
   const [hoveredCell, setHoveredCell] = useState<{
     row: number;
     col: number;
-    value: number;
+    value: number | null;
     pVal: number;
     tVal: number;
   } | null>(null);
   const [copiedFormat, setCopiedFormat] = useState<string | null>(null);
 
   const incrementAmount = params.rhabdomLength / 10.0;
+  const unit = matrixType === 'resolution' ? '°' : '%';
 
-  // Compute min and max
+  // Compute min and max, ignoring cells whose value is undefined.
   let minVal = Infinity;
   let maxVal = -Infinity;
   let sum = 0;
@@ -35,6 +42,7 @@ export const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
 
   matrix.forEach((row) => {
     row.forEach((val) => {
+      if (val === null) return;
       if (val < minVal) minVal = val;
       if (val > maxVal) maxVal = val;
       sum += val;
@@ -42,6 +50,10 @@ export const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
     });
   });
 
+  if (count === 0) {
+    minVal = 0;
+    maxVal = 0;
+  }
   const avgVal = count > 0 ? sum / count : 0;
   const valRange = maxVal - minVal || 1;
 
@@ -101,7 +113,7 @@ export const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
   };
 
   const copyAsTable = (delimiter: string, formatName: string) => {
-    const text = matrix.map((row) => row.join(delimiter)).join('\n');
+    const text = matrix.map((row) => row.map(formatCell).join(delimiter)).join('\n');
     navigator.clipboard.writeText(text);
     setCopiedFormat(formatName);
     setTimeout(() => setCopiedFormat(null), 2500);
@@ -112,10 +124,10 @@ export const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
       <div className="heatmap-toolbar">
         <div className="heatmap-info-stats">
           <div className="stat-pill">
-            <span>Range:</span> <strong>{minVal} – {maxVal}</strong>
+            <span>Range:</span> <strong>{minVal.toFixed(2)} – {maxVal.toFixed(2)}{unit}</strong>
           </div>
           <div className="stat-pill">
-            <span>Average:</span> <strong>{avgVal.toFixed(1)}</strong>
+            <span>Average:</span> <strong>{avgVal.toFixed(2)}{unit}</strong>
           </div>
           <div className="stat-pill">
             <span>Matrix:</span> <strong>11×11 (121 states)</strong>
@@ -211,8 +223,10 @@ export const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
                           const tLength = (colIdx * incrementAmount).toFixed(0);
                           const isHovered =
                             hoveredCell?.row === rowIdx && hoveredCell?.col === colIdx;
-                          const bg = getColor(val);
-                          const relativeNorm = (val - minVal) / valRange;
+                          // An undefined measurement gets a neutral swatch rather
+                          // than being coloured as if it were a real extreme.
+                          const bg = val === null ? 'var(--surface-muted, #3a3a3a)' : getColor(val);
+                          const relativeNorm = val === null ? 0 : (val - minVal) / valRange;
                           const textColor = relativeNorm > 0.65 ? '#000000' : '#ffffff';
 
                           return (
@@ -231,7 +245,7 @@ export const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
                               }
                               onMouseLeave={() => setHoveredCell(null)}
                             >
-                              <span className="cell-number">{val}</span>
+                              <span className="cell-number">{formatCell(val)}</span>
                             </td>
                           );
                         })}
@@ -252,9 +266,9 @@ export const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
               background: `linear-gradient(to right, ${getColor(minVal)}, ${getColor(minVal + valRange * 0.5)}, ${getColor(maxVal)})`
             }} />
             <div className="legend-labels">
-              <span>{minVal} (Min)</span>
-              <span>{avgVal.toFixed(0)} (Mean)</span>
-              <span>{maxVal} (Max)</span>
+              <span>{minVal.toFixed(2)}{unit} (Min)</span>
+              <span>{avgVal.toFixed(2)}{unit} (Mean)</span>
+              <span>{maxVal.toFixed(2)}{unit} (Max)</span>
             </div>
           </div>
 
@@ -263,9 +277,11 @@ export const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
             {hoveredCell ? (
               <div className="inspector-details">
                 <div className="inspector-value-box">
-                  <span className="inspector-val">{hoveredCell.value}</span>
+                  <span className="inspector-val">{formatCell(hoveredCell.value)}{hoveredCell.value === null ? '' : unit}</span>
                   <span className="inspector-sub">
-                    {matrixType === 'resolution' ? 'Optical Acceptance Index' : 'Sensitivity Flux'}
+                    {matrixType === 'resolution'
+                      ? 'Acceptance angle (FWHM of the point spread function)'
+                      : 'Incident light absorbed, averaged over the eyeshine patch'}
                   </span>
                 </div>
                 <div className="inspector-metrics">
@@ -283,7 +299,11 @@ export const HeatmapViewer: React.FC<HeatmapViewerProps> = ({
                   </div>
                   <div className="metric-row">
                     <span>Relative to Peak:</span>
-                    <strong>{(((hoveredCell.value - minVal) / valRange) * 100).toFixed(1)}%</strong>
+                    <strong>
+                      {hoveredCell.value === null
+                        ? 'n/a'
+                        : `${(((hoveredCell.value - minVal) / valRange) * 100).toFixed(1)}%`}
+                    </strong>
                   </div>
                 </div>
               </div>

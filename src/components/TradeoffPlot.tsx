@@ -3,8 +3,8 @@ import type { EyeParameters } from '../types/simulation';
 import { TrendingUp, Info } from 'lucide-react';
 
 interface TradeoffPlotProps {
-  matrixRes: number[][];
-  matrixSens: number[][];
+  matrixRes: (number | null)[][];
+  matrixSens: (number | null)[][];
   params: EyeParameters;
 }
 
@@ -32,8 +32,13 @@ export const TradeoffPlot: React.FC<TradeoffPlotProps> = ({
 
   for (let r = 0; r < 11; r++) {
     for (let c = 0; c < 11; c++) {
-      const res = matrixRes[r]?.[c] ?? 0;
-      const sens = matrixSens[r]?.[c] ?? 0;
+      const res = matrixRes[r]?.[c];
+      const sens = matrixSens[r]?.[c];
+      // A pigment state with no defined acceptance angle has no position on the
+      // resolution axis, so it is omitted rather than plotted at zero.
+      if (res === null || res === undefined || sens === null || sens === undefined) {
+        continue;
+      }
       if (res < minRes) minRes = res;
       if (res > maxRes) maxRes = res;
       if (sens < minSens) minSens = sens;
@@ -48,6 +53,15 @@ export const TradeoffPlot: React.FC<TradeoffPlotProps> = ({
         sens,
       });
     }
+  }
+
+  // With no plottable state the axis bounds are still Infinity, which would render
+  // NaN coordinates for every tick.
+  if (points.length === 0) {
+    minRes = 0;
+    maxRes = 0;
+    minSens = 0;
+    maxSens = 0;
   }
 
   // Plot dimensions
@@ -88,8 +102,8 @@ export const TradeoffPlot: React.FC<TradeoffPlotProps> = ({
             {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => {
               const y = padding.top + plotHeight * (1 - pct);
               const x = padding.left + plotWidth * pct;
-              const sensVal = Math.round(minSens + sensRange * pct);
-              const resVal = Math.round(minRes + resRange * pct);
+              const sensVal = (minSens + sensRange * pct).toFixed(1);
+              const resVal = (minRes + resRange * pct).toFixed(1);
 
               return (
                 <g key={i} className="grid-group">
@@ -157,7 +171,7 @@ export const TradeoffPlot: React.FC<TradeoffPlotProps> = ({
               textAnchor="middle"
               className="axis-title-svg"
             >
-              Calculated Resolution (200 &times; Optical Acceptance Angle) &rarr;
+              Acceptance angle &mdash; FWHM of the point spread function (degrees) &rarr;
             </text>
             <text
               x={-padding.top - plotHeight / 2}
@@ -166,7 +180,7 @@ export const TradeoffPlot: React.FC<TradeoffPlotProps> = ({
               textAnchor="middle"
               className="axis-title-svg"
             >
-              Sensitivity (Integrated Catch / Area) &rarr;
+              Light absorbed, averaged over the eyeshine patch (%) &rarr;
             </text>
 
             {/* Plot Points */}
@@ -206,12 +220,12 @@ export const TradeoffPlot: React.FC<TradeoffPlotProps> = ({
             <div className="point-card">
               <div className="point-metrics">
                 <div className="metric-row">
-                  <span>Resolution:</span>
-                  <strong>{hoveredPoint.res}</strong>
+                  <span>Acceptance angle:</span>
+                  <strong>{hoveredPoint.res.toFixed(2)}&deg;</strong>
                 </div>
                 <div className="metric-row">
-                  <span>Sensitivity:</span>
-                  <strong>{hoveredPoint.sens}</strong>
+                  <span>Light absorbed:</span>
+                  <strong>{hoveredPoint.sens.toFixed(2)}%</strong>
                 </div>
                 <div className="metric-row">
                   <span>Shielding Pigment (P):</span>

@@ -88,8 +88,13 @@ export const TheoryGuideModal: React.FC<TheoryGuideModalProps> = ({ isOpen, onCl
                   </tr>
                   <tr>
                     <td><code>Blur Circle Extent</code></td>
-                    <td>Count</td>
-                    <td>Off-axis blur circle dispersion scale (typically 1 for point focus up to 18).</td>
+                    <td>Rhabdoms</td>
+                    <td>
+                      Width of the blur circle, in rhabdoms. 1 is a perfect point focus; the
+                      outermost facet of the eyeshine patch is displaced by (extent &minus; 1)
+                      rhabdoms. It cannot exceed the number of facets across the patch, since
+                      the light would then have to fill rhabdom offsets that no facet reaches.
+                    </td>
                   </tr>
                   <tr>
                     <td><code>Proximal Rhabdom Angle</code></td>
