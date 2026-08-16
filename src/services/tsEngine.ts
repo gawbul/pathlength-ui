@@ -40,6 +40,28 @@ export function validateParameters(p: EyeParameters): string | null {
   if (!p.speciesName || p.speciesName.trim() === '') {
     return 'species name is required';
   }
+  // Reject non-finite values before any range check. parseFloat yields NaN for
+  // unparseable input and accepts "Infinity", and every ordered comparison against
+  // NaN is false, so a NaN would slip past the constraints below and reappear as an
+  // undefined critical angle or blur offset - reproducing the very silent failures
+  // the range checks exist to prevent.
+  const numeric: [string, number][] = [
+    ['rhabdom length', p.rhabdomLength],
+    ['rhabdom width', p.rhabdomWidth],
+    ['eye diameter', p.eyeDiameter],
+    ['facet width', p.facetWidth],
+    ['aperture diameter', p.apertureDiameter],
+    ['cytoplasm refractive index', p.cytoplasmRefractiveIndex],
+    ['rhabdom refractive index', p.rhabdomRefractiveIndex],
+    ['blur circle extent', p.blurCircleExtent],
+    ['proximal rhabdom angle', p.proximalRhabdomAngle],
+  ];
+  for (const [name, value] of numeric) {
+    if (!Number.isFinite(value)) {
+      return `${name} must be a finite number, got ${value}`;
+    }
+  }
+
   const positives: [string, number][] = [
     ['rhabdom length', p.rhabdomLength],
     ['rhabdom width', p.rhabdomWidth],
@@ -48,7 +70,7 @@ export function validateParameters(p: EyeParameters): string | null {
     ['aperture diameter', p.apertureDiameter],
   ];
   for (const [name, value] of positives) {
-    if (!(value > 0)) {
+    if (value <= 0) {
       return `${name} must be greater than 0 µm, got ${value}`;
     }
   }
@@ -300,17 +322,20 @@ export class Model {
 /** The resolution and sensitivity derived from one pigment block. */
 export interface BlockSummary {
   /**
-   * FWHM of the point spread function, in degrees. null when the profile carries no
-   * light at all, in which case the acceptance angle is undefined.
+   * The acceptance angle: the full width at half maximum of the angular sensitivity
+   * function, in degrees. null when the profile carries no light or is annular, in
+   * which case there is no acceptance angle to report.
    */
   fwhmDegrees: number | null;
   /** Percentage of incident light absorbed, averaged over the eyeshine patch (0-100). */
   sensitivityPercent: number;
-  /**
-   * The rhabdom offset carrying the most light. A non-zero value means the profile is
-   * annular and its FWHM is not a simple acceptance angle.
-   */
+  /** The rhabdom offset carrying the most light. */
   peakOffset: number;
+  /**
+   * Set when the profile dips below half its maximum on the optic axis, so the light
+   * forms a ring rather than a central spot.
+   */
+  annular: boolean;
 }
 
 /**
@@ -318,7 +343,12 @@ export interface BlockSummary {
  * sensitivity.
  */
 export function summariseBlock(model: Model, rhabdoms: number[]): BlockSummary {
-  const out: BlockSummary = { fwhmDegrees: null, sensitivityPercent: 0, peakOffset: 0 };
+  const out: BlockSummary = {
+    fwhmDegrees: null,
+    sensitivityPercent: 0,
+    peakOffset: 0,
+    annular: false,
+  };
 
   // Sensitivity: the area-weighted mean of the absorbed percentage over the eyeshine
   // patch. The facet weights telescope to exactly pi*(N-0.5)^2, so dividing by that
@@ -351,12 +381,24 @@ export function summariseBlock(model: Model, rhabdoms: number[]): BlockSummary {
   if (psf[peak] <= 0) return out;
   const half = psf[peak] / 2.0;
 
-  // Walk outwards from the peak to the first crossing of the half maximum and
-  // interpolate linearly between the bracketing offsets.
-  for (let i = peak; i < psf.length - 1; i++) {
+  // A profile that is already below half its maximum on the optic axis is annular: the
+  // light forms a ring, and the region above half maximum is a band that does not
+  // contain the axis. There is no acceptance angle to report, so the width is left
+  // undefined rather than substituting the ring's thickness for it.
+  if (psf[0] < half) {
+    out.annular = true;
+    return out;
+  }
+
+  // The angular sensitivity function is even about the optic axis - offset j stands for
+  // both +j and -j - so its full width at half maximum is twice the radius at which it
+  // first falls below half. That radius is measured from the axis, not from the peak:
+  // on a flat-topped profile whose maximum sits slightly off-axis, measuring from the
+  // peak would understate the width by the peak's own offset.
+  for (let i = 0; i < psf.length - 1; i++) {
     if (psf[i] >= half && psf[i + 1] < half) {
       const frac = (psf[i] - half) / (psf[i] - psf[i + 1]);
-      out.fwhmDegrees = 2.0 * (i + frac - peak) * model.ommatidialAngle;
+      out.fwhmDegrees = 2.0 * (i + frac) * model.ommatidialAngle;
       break;
     }
   }
@@ -481,16 +523,16 @@ export function runSimulationTS(p: EyeParameters, debugMode = false): Simulation
     senRows.push(senRow.map((v) => (v as number).toFixed(4)).join(','));
   }
 
-  const undefinedCount = summaries.filter((s) => s.fwhmDegrees === null).length;
-  const annularCount = summaries.filter((s) => s.peakOffset !== 0).length;
-  if (undefinedCount > 0) {
-    warnings.push(
-      `${undefinedCount} of ${summaries.length} pigment states have no half-maximum crossing; their resolution is undefined.`
-    );
-  }
+  const annularCount = summaries.filter((s) => s.annular).length;
+  const darkCount = summaries.filter((s) => !s.annular && s.fwhmDegrees === null).length;
   if (annularCount > 0) {
     warnings.push(
-      `${annularCount} of ${summaries.length} pigment states peak away from the optic axis (annular profile); their FWHM is not a simple acceptance angle.`
+      `${annularCount} of ${summaries.length} pigment states have an annular profile, with the light forming a ring rather than a central spot; they have no acceptance angle and are reported as undefined.`
+    );
+  }
+  if (darkCount > 0) {
+    warnings.push(
+      `${darkCount} of ${summaries.length} pigment states absorb no light; their resolution is undefined.`
     );
   }
   if (lostRays > 0) {

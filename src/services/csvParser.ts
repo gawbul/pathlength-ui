@@ -41,18 +41,23 @@ export function parseCsvText(csvText: string): ParseResult {
     const blurCircleExtent = parseFloat(parts[8]);
     const proximalRhabdomAngle = parseFloat(parts[9]);
 
+    // Number.isFinite rather than isNaN: parseFloat happily returns Infinity for
+    // "Infinity", and isNaN(Infinity) is false, so an infinite value would otherwise
+    // reach the engine and propagate through the geometry.
     if (
-      isNaN(rhabdomLength) ||
-      isNaN(rhabdomWidth) ||
-      isNaN(eyeDiameter) ||
-      isNaN(facetWidth) ||
-      isNaN(apertureDiameter) ||
-      isNaN(cytoplasmRefractiveIndex) ||
-      isNaN(rhabdomRefractiveIndex) ||
-      isNaN(blurCircleExtent) ||
-      isNaN(proximalRhabdomAngle)
+      ![
+        rhabdomLength,
+        rhabdomWidth,
+        eyeDiameter,
+        facetWidth,
+        apertureDiameter,
+        cytoplasmRefractiveIndex,
+        rhabdomRefractiveIndex,
+        blurCircleExtent,
+        proximalRhabdomAngle,
+      ].every(Number.isFinite)
     ) {
-      errors.push(`Line ${index + 1}: Contains non-numeric optical values`);
+      errors.push(`Line ${index + 1}: Contains non-finite optical values`);
       return;
     }
 
@@ -97,6 +102,23 @@ export function validateParameter(param: Partial<EyeParameters>): string[] {
   const issues: string[] = [];
   if (!param.speciesName || param.speciesName.trim() === '') {
     issues.push('Species / identifier name is required');
+  }
+  // Every ordered comparison against NaN is false, so a non-finite value would pass
+  // each range check below unremarked.
+  for (const [name, value] of [
+    ['Rhabdom length', param.rhabdomLength],
+    ['Rhabdom width', param.rhabdomWidth],
+    ['Eye diameter', param.eyeDiameter],
+    ['Facet width', param.facetWidth],
+    ['Aperture diameter', param.apertureDiameter],
+    ['Cytoplasm refractive index', param.cytoplasmRefractiveIndex],
+    ['Rhabdom refractive index', param.rhabdomRefractiveIndex],
+    ['Blur circle extent', param.blurCircleExtent],
+    ['Proximal rhabdom angle', param.proximalRhabdomAngle],
+  ] as [string, number | undefined][]) {
+    if (value !== undefined && !Number.isFinite(value)) {
+      issues.push(`${name} must be a finite number`);
+    }
   }
   if ((param.rhabdomLength ?? 0) <= 0) {
     issues.push('Rhabdom length must be > 0 µm');

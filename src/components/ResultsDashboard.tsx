@@ -270,7 +270,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
           <div className="single-view-pane">
             <div className="pane-header">
               <h3>Acceptance Angle Matrix &mdash; FWHM of the point spread function (degrees)</h3>
-              <p>Larger angles mean a wider acceptance angle and so lower spatial acuity. A cell reading <code>n/a</code> is a pigment state whose profile never falls to half its maximum, leaving the acceptance angle undefined.</p>
+              <p>Larger angles mean a wider acceptance angle and so lower spatial acuity. A cell reading <code>n/a</code> is a pigment state with no acceptance angle: it either absorbs no light, or its profile is annular, dipping below half its maximum on the optic axis so the light forms a ring rather than a central spot.</p>
             </div>
             <HeatmapViewer
               matrix={currentResult.matrixRes}

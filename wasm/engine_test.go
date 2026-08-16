@@ -75,6 +75,13 @@ func TestRejectsUnphysicalParameters(t *testing.T) {
 		{"ApertureExceedsEye", func(p *Parameters) { p.ApertureDiameter = 9000 }, "aperture diameter"},
 		{"ZeroRhabdomLength", func(p *Parameters) { p.RhabdomLength = 0 }, "rhabdom length"},
 		{"BlurCircleBelowOne", func(p *Parameters) { p.BlurCircleExtent = 0 }, "blur circle extent"},
+		// ParseFloat accepts "NaN" and "Inf", and every ordered comparison against NaN
+		// is false, so these used to slip past every range check and produce
+		// plausible-looking output.
+		{"NaNBlurCircle", func(p *Parameters) { p.BlurCircleExtent = math.NaN() }, "must be a finite number"},
+		{"NaNCytoplasmIndex", func(p *Parameters) { p.CytoplasmRefractiveIndex = math.NaN() }, "must be a finite number"},
+		{"InfRhabdomLength", func(p *Parameters) { p.RhabdomLength = math.Inf(1) }, "must be a finite number"},
+		{"InfProximalAngle", func(p *Parameters) { p.ProximalRhabdomAngle = math.Inf(1) }, "must be a finite number"},
 		// astacodes shipped an 18-rhabdom blur circle against only 7 facets, leaving
 		// 11 rhabdom offsets receiving no light at all.
 		{"BlurCircleExceedsFacets", func(p *Parameters) {
@@ -204,6 +211,42 @@ func TestSummariseBlockResolution(t *testing.T) {
 	if got := model.summariseBlock(nil); !math.IsNaN(got.FWHMDegrees) {
 		t.Errorf("Expected an undefined FWHM for an empty profile, got %f", got.FWHMDegrees)
 	}
+
+	// The angular sensitivity function is even about the optic axis, so its width is
+	// measured from the axis. Measuring from the peak would understate this flat-topped
+	// profile by the peak's own offset.
+	t.Run("FlatTopMeasuredFromTheAxis", func(t *testing.T) {
+		psf := []float64{0.99, 1.0, 0.98, 0.4, 0}
+		weighted := make([]float64, len(psf))
+		for j, v := range psf {
+			weighted[j] = v * ringArea(j)
+		}
+		got := model.summariseBlock(weighted)
+		want := 2.0 * 2.8275862068965516 * model.OmmatidialAngle
+		if got.Annular {
+			t.Error("A profile at maximum on the axis is not annular")
+		}
+		if math.Abs(got.FWHMDegrees-want) > 1e-9 {
+			t.Errorf("Expected FWHM %.6f deg, got %.6f", want, got.FWHMDegrees)
+		}
+	})
+
+	// A ring has no acceptance angle about the axis; reporting its thickness instead
+	// would read as an implausibly sharp eye.
+	t.Run("AnnularProfileIsUndefined", func(t *testing.T) {
+		psf := []float64{0.2, 0.6, 1.0, 0.6, 0.2, 0}
+		weighted := make([]float64, len(psf))
+		for j, v := range psf {
+			weighted[j] = v * ringArea(j)
+		}
+		got := model.summariseBlock(weighted)
+		if !got.Annular {
+			t.Error("Expected the profile to be flagged as annular")
+		}
+		if !math.IsNaN(got.FWHMDegrees) {
+			t.Errorf("Expected an undefined FWHM, got %f", got.FWHMDegrees)
+		}
+	})
 }
 
 func TestRunSimulation(t *testing.T) {

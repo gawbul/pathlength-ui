@@ -39,6 +39,14 @@ describe('parameter validation', () => {
     ['aperture exceeds eye', { apertureDiameter: 9000 }, /aperture diameter/],
     ['zero rhabdom length', { rhabdomLength: 0 }, /rhabdom length/],
     ['blur circle below one', { blurCircleExtent: 0 }, /blur circle extent/],
+    // parseFloat yields NaN for unparseable input and accepts "Infinity", and every
+    // ordered comparison against NaN is false, so these used to slip past every range
+    // check and produce plausible-looking output.
+    ['NaN blur circle', { blurCircleExtent: NaN }, /must be a finite number/],
+    ['NaN cytoplasm index', { cytoplasmRefractiveIndex: NaN }, /must be a finite number/],
+    ['infinite rhabdom length', { rhabdomLength: Infinity }, /must be a finite number/],
+    ['infinite proximal angle', { proximalRhabdomAngle: Infinity }, /must be a finite number/],
+    ['negative infinite eye diameter', { eyeDiameter: -Infinity }, /must be a finite number/],
   ])('rejects %s', (_name, overrides, pattern) => {
     expect(() => new Model(nephropsFlatLateral(overrides))).toThrow(pattern);
   });
@@ -183,6 +191,37 @@ describe('summary accumulation', () => {
     const empty = summariseBlock(model, []);
     expect(empty.fwhmDegrees).toBeNull();
     expect(empty.sensitivityPercent).toBe(0);
+  });
+
+  // The angular sensitivity function is even about the optic axis, so its width is
+  // measured from the axis. Measuring from the peak understates a flat-topped profile
+  // by the peak's own offset: here the light is above half maximum out to radius
+  // 2.828, so the full width is 5.657 ommatidial angles, not 3.657.
+  it('measures a flat-topped profile from the optic axis, not the peak', () => {
+    const model = new Model(nephropsFlatLateral({ blurCircleExtent: 1 }));
+    const weighted = [0.99, 1.0, 0.98, 0.4, 0].map((v, j) => v * ringArea(j));
+    const got = summariseBlock(model, weighted);
+
+    expect(got.peakOffset).toBe(1);
+    expect(got.annular).toBe(false);
+    expect(got.fwhmDegrees as number).toBeCloseTo(
+      2 * 2.8275862068965516 * model.ommatidialAngle,
+      9
+    );
+  });
+
+  // A profile that dips below half maximum on the axis is a ring. Its supra-half
+  // region does not contain the axis, so there is no acceptance angle: reporting the
+  // ring's thickness instead would read as an implausibly sharp eye.
+  it('reports no acceptance angle for an annular profile', () => {
+    const model = new Model(nephropsFlatLateral({ blurCircleExtent: 1 }));
+    const weighted = [0.2, 0.6, 1.0, 0.6, 0.2, 0].map((v, j) => v * ringArea(j));
+    const got = summariseBlock(model, weighted);
+
+    expect(got.annular).toBe(true);
+    expect(got.fwhmDegrees).toBeNull();
+    // Sensitivity is independent of the resolution classification.
+    expect(got.sensitivityPercent).toBeGreaterThan(0);
   });
 });
 
